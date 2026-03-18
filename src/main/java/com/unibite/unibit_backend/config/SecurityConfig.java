@@ -16,31 +16,48 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final JwtFilter jwtFilter;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth->auth
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -> auth
+
+                        // PUBLIC APIs
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/menu/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/foods/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/menu/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/foods/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/categories/**").permitAll()
 
-                        .requestMatchers(HttpMethod.POST,"/menu/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,"/foods/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,"/foods/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE,"/foods/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH,"/foods/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,"/categories/**").hasRole("ADMIN")
+                        // USER APIs
+                        .requestMatchers(HttpMethod.POST, "/orders/place").authenticated()
 
+                        // ADMIN APIs
+                        .requestMatchers(HttpMethod.POST, "/menu/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/foods/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/foods/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/foods/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/foods/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/categories/**").hasRole("ADMIN")
 
+                        .requestMatchers("/orders/all").hasRole("ADMIN")
+                        .requestMatchers("/orders/status/**").hasRole("ADMIN")
+                        .requestMatchers("/orders/sales/**").hasRole("ADMIN")
+
+                        // ANY OTHER REQUEST
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
+
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();

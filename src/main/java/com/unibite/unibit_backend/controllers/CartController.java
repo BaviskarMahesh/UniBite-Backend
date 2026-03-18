@@ -3,6 +3,7 @@ package com.unibite.unibit_backend.controllers;
 import com.unibite.unibit_backend.dto.AddToCartRequest;
 import com.unibite.unibit_backend.entity.CartItem;
 import com.unibite.unibit_backend.service.CartService;
+import jakarta.validation.Valid;
 import lombok.Generated;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,7 +18,7 @@ public class CartController {
 
     private final CartService service;
     @PostMapping("/add")
-    public void add(@RequestBody AddToCartRequest request){
+    public void add(@RequestBody @Valid AddToCartRequest request){
         String email= SecurityContextHolder.getContext().getAuthentication().getName();
         service.addToCart(email,request);
     }

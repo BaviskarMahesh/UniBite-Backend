@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Data
@@ -23,4 +24,6 @@ public class Orders {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
     private LocalDateTime createdAt;
+    @OneToMany(mappedBy = "orders",cascade = CascadeType.ALL)
+    private List<OrderItem> items;
 }

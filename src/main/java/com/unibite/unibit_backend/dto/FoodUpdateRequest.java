@@ -14,7 +14,7 @@ public class FoodUpdateRequest {
 
 
     private String name;
-    private double price;
+    private Double price;
     private Boolean available;
     private Long categoryId;
 }

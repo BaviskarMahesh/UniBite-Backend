@@ -4,6 +4,7 @@ import com.unibite.unibit_backend.dto.FoodRequest;
 import com.unibite.unibit_backend.dto.FoodUpdateRequest;
 import com.unibite.unibit_backend.entity.FoodItem;
 import com.unibite.unibit_backend.service.FoodItemService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ public class FoodController {
     /// food items
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public FoodItem create(@RequestBody FoodRequest request){
+    public FoodItem create(@RequestBody @Valid FoodRequest request){
         return service.create(request);
     }
     /// getting all fooditems
@@ -31,8 +32,8 @@ public class FoodController {
     /// update fooditems
     @PutMapping("/{id}")
     public FoodItem update(
-            @PathVariable Long id,
-            @RequestBody FoodUpdateRequest request
+            @PathVariable @Valid Long id,
+            @RequestBody @Valid FoodUpdateRequest request
             ){
         return service.update(id,request);
     }
