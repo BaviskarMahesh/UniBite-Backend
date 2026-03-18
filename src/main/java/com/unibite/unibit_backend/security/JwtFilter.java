@@ -33,17 +33,16 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        ///PUBLIC APIs (NO TOKEN REQUIRED)
         if (path.startsWith("/auth") ||
                 (path.startsWith("/menu") && HttpMethod.GET.matches(method)) ||
                 (path.startsWith("/foods") && HttpMethod.GET.matches(method)) ||
-                (path.startsWith("/categories") && HttpMethod.GET.matches(method))) {
+                (path.startsWith("/categories") && HttpMethod.GET.matches(method)) ||
+                (path.startsWith("/foods") && HttpMethod.PATCH.matches(method))) {
 
             filterChain.doFilter(request, response);
             return;
         }
 
-        /// AUTH HEADER CHECK
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -60,7 +59,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                /// VALIDATE TOKEN
                 if (jwtutil.isTokenValid(token, email)) {
 
                     UsernamePasswordAuthenticationToken authToken =
@@ -79,7 +77,6 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            /// Invalid token → just continue without authentication
             filterChain.doFilter(request, response);
             return;
         }

@@ -6,6 +6,8 @@ import com.unibite.unibit_backend.enums.OrderStatus;
 import com.unibite.unibit_backend.enums.PaymentStatus;
 import com.unibite.unibit_backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -31,7 +33,11 @@ public class OrderService {
         }
 
         Cart cart = cartRepository.findByUserEmail(email)
-                .orElseThrow(() -> new RuntimeException("Cart not found for user"));
+                .orElseGet(()->{
+                    Cart newCart=new Cart();
+                    newCart.setUserEmail(email);
+                    return cartRepository.save(newCart);
+                });
 
         List<CartItem> items = cartItemRepository.findByCart(cart);
 
@@ -103,7 +109,7 @@ public class OrderService {
                 .map(i->BillResponse.Item.builder()
                         .name(i.getFoodItem().getName())
                         .quantity(i.getQuantity())
-                        .price(i.getPrice())
+                        .totalPrice(i.getPrice())
                         .build()).toList();
 
         return BillResponse.builder()
@@ -135,7 +141,7 @@ public class OrderService {
         Orders orders = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if(!isValidTransition(orders.getStatus(),status)){
-            throw new RuntimeException("Invalid status tranisition")
+            throw new RuntimeException("Invalid status tranisition");
         }
         orders.setStatus(status);
 
@@ -174,5 +180,17 @@ public class OrderService {
             case READY -> next==OrderStatus.COMPLETED;
             default -> false;
         };
+    }
+
+    //pagination
+    public Page<Orders> getOrders(int page,int size){
+        return orderRepository.findAll(PageRequest.of(page,size));
+    }
+    public Orders getById(Long id){
+        if(id==null){
+            throw new RuntimeException("Order ID is required");
+        }
+        return orderRepository.findById(id)
+                .orElseThrow(()-> new RuntimeException("Order not found"));
     }
 }

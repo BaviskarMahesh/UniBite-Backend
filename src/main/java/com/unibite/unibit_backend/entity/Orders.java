@@ -15,10 +15,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Orders {
-    @Id
-    @GeneratedValue
-    private Long id;
+public class Orders extends BaseEntity {
+
     private String userEmail;
     private double totalPrice;
     @Enumerated(EnumType.STRING)

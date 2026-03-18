@@ -2,9 +2,7 @@ package com.unibite.unibit_backend.entity;
 
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+
 import lombok.*;
 
 @Entity
@@ -15,9 +13,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 
-public class FoodCategory {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class FoodCategory extends BaseEntity{
+
     private String name;
 }

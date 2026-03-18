@@ -10,10 +10,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FoodItem {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class FoodItem extends BaseEntity{
+
     private String name;
     private double price;
     private boolean available;

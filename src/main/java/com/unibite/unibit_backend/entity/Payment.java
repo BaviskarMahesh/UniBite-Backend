@@ -6,17 +6,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.web.bind.annotation.PathVariable;
+//import org.springframework.web.bind.annotation.PathVariable;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Payment {
-@Id
-@GeneratedValue
-    private Long id;
+public class Payment extends BaseEntity{
+
 @OneToOne
 @JoinColumn(name="orders_id")
     private Orders orders;

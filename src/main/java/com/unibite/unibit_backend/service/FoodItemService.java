@@ -86,7 +86,9 @@ public class FoodItemService {
         FoodItem foodItem = foodItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Food not found"));
 
-        foodItemRepository.delete(foodItem);
+        foodItem.setAvailable(false);
+
+        foodItemRepository.save(foodItem);
     }
 
     /// TOGGLE AVAILABILITY

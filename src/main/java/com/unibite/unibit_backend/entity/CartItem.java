@@ -1,8 +1,7 @@
 package com.unibite.unibit_backend.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+
 import jakarta.persistence.ManyToOne;
 import lombok.*;
 
@@ -11,10 +10,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class CartItem {
-    @Id
-    @GeneratedValue
-    private Long id;
+public class CartItem extends BaseEntity{
+
     @ManyToOne
     private Cart cart;
     @ManyToOne

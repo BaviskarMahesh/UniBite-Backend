@@ -18,13 +18,19 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MenuController {
     private final MenuService service;
-    @PreAuthorize("hasRole('ADMIN')")
+
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Menu assign(@RequestBody @Valid MenuRequest request){
         return service.assign(request);
     }
     @GetMapping
-    public List<Menu> get(@RequestParam @Valid MenuType menuType){
+    public List<Menu> get(@RequestParam(required = false) MenuType menuType){
+
+        if(menuType == null){
+            return service.getAll();
+        }
+
         return service.get(menuType);
     }
 }

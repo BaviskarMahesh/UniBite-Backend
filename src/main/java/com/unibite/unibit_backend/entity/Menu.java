@@ -13,10 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Menu {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Menu extends BaseEntity{
+
     @ManyToOne
     @JoinColumn(name="food_id")
     private FoodItem foodItem;

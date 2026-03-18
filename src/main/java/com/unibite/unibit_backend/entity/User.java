@@ -9,11 +9,8 @@ import lombok.Setter;
 @Table(name = "users")
 @Getter
 @Setter
-public class User {
+public class User extends BaseEntity{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     private String name;
 
@@ -22,9 +19,7 @@ public class User {
 
     private String password;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+
 
     public void setName(String name) {
         this.name = name;
@@ -51,9 +46,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    public Long getId() {
-        return id;
-    }
+
 
     public String getName() {
         return name;

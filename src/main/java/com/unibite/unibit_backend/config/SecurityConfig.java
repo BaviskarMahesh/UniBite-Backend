@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/menu/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/foods/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/categories/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/foods/**").permitAll()
 
                         // USER APIs
                         .requestMatchers(HttpMethod.POST, "/orders/place").authenticated()
@@ -43,12 +44,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/foods/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/foods/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/foods/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/foods/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/categories/**").hasRole("ADMIN")
 
                         .requestMatchers("/orders/all").hasRole("ADMIN")
                         .requestMatchers("/orders/status/**").hasRole("ADMIN")
-                        .requestMatchers("/orders/sales/**").hasRole("ADMIN")
+                        .requestMatchers("/orders/sales/today").hasRole("ADMIN")
+                        .requestMatchers("/orders/*/bill").authenticated()
 
                         // ANY OTHER REQUEST
                         .anyRequest().authenticated()

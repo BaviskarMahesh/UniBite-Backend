@@ -34,5 +34,8 @@ public class MenuService {
     public List<Menu> get(MenuType type){
         return menuRepository.findByMenuType(type);
     }
+    public List<Menu> getAll(){
+        return menuRepository.findAll();
+    }
 
 }

@@ -1,8 +1,7 @@
 package com.unibite.unibit_backend.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,10 +13,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderItem {
-    @Id
-    @GeneratedValue
-    private Long id;
+public class OrderItem extends BaseEntity
+{
+
     @ManyToOne
     private Orders orders;
     @ManyToOne

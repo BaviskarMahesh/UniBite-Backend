@@ -3,6 +3,7 @@ package com.unibite.unibit_backend.controllers;
 import com.unibite.unibit_backend.dto.FoodRequest;
 import com.unibite.unibit_backend.dto.FoodUpdateRequest;
 import com.unibite.unibit_backend.entity.FoodItem;
+import com.unibite.unibit_backend.repository.FoodItemRepository;
 import com.unibite.unibit_backend.service.FoodItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FoodController {
     private final FoodItemService service;
+    private final FoodItemRepository foodItemRepository;
 
     /// food items
     @PreAuthorize("hasRole('ADMIN')")
@@ -48,5 +50,15 @@ public class FoodController {
     @PatchMapping("/{id}/status")
     public FoodItem toggle(@PathVariable Long id){
         return service.toggleAvailability(id);
+    }
+
+    /// search functionality
+    @GetMapping("/search")
+    public List<FoodItem> search(@RequestParam String name){
+        return foodItemRepository.findByNameContainingIgnoreCase(name);
+    }
+    @GetMapping("/category/{id}")
+    public List<FoodItem> byCategory(@PathVariable Long id){
+        return foodItemRepository.findByFoodCategory_Id(id);
     }
 }
