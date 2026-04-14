@@ -1,5 +1,6 @@
 package com.unibite.unibit_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.unibite.unibit_backend.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,5 +24,6 @@ public class Orders extends BaseEntity {
     private OrderStatus status;
     private LocalDateTime createdAt;
     @OneToMany(mappedBy = "orders",cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<OrderItem> items;
 }

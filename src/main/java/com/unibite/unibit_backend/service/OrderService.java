@@ -4,16 +4,15 @@ import com.unibite.unibit_backend.dto.BillResponse;
 import com.unibite.unibit_backend.entity.*;
 import com.unibite.unibit_backend.enums.OrderStatus;
 import com.unibite.unibit_backend.enums.PaymentStatus;
+import com.unibite.unibit_backend.kafka.OrderProducer;
 import com.unibite.unibit_backend.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -24,24 +23,23 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
+    private final OrderProducer orderProducer;
 
-    /// placing order service layer
-    public BillResponse placeOrder(String email){
 
-        if(email == null || email.trim().isEmpty()){
+    public BillResponse placeOrder(String email) {
+
+        if (email == null || email.trim().isEmpty()) {
             throw new RuntimeException("User email is required");
         }
 
         Cart cart = cartRepository.findByUserEmail(email)
-                .orElseGet(()->{
-                    Cart newCart=new Cart();
-                    newCart.setUserEmail(email);
-                    return cartRepository.save(newCart);
-                });
+                .orElseGet(() -> cartRepository.save(
+                        Cart.builder().userEmail(email).build()
+                ));
 
         List<CartItem> items = cartItemRepository.findByCart(cart);
 
-        if(items == null || items.isEmpty()){
+        if (items == null || items.isEmpty()) {
             throw new RuntimeException("Cart is empty");
         }
 
@@ -57,22 +55,20 @@ public class OrderService {
 
         List<OrderItem> orderItems = new ArrayList<>();
 
-        for(CartItem item : items){
+        for (CartItem item : items) {
 
-            if(item.getFoodItem() == null){
+            if (item.getFoodItem() == null) {
                 throw new RuntimeException("Invalid food item in cart");
             }
 
-            if(item.getQuantity() <= 0){
+            if (item.getQuantity() <= 0) {
                 throw new RuntimeException("Invalid quantity for item: " + item.getFoodItem().getName());
             }
 
-            if(!item.getFoodItem().isAvailable()){
+            if (!item.getFoodItem().isAvailable()) {
                 throw new RuntimeException(item.getFoodItem().getName() + " is currently unavailable");
             }
-
             double price = item.getFoodItem().getPrice() * item.getQuantity();
-
             total += price;
 
             orderItems.add(orderItemRepository.save(
@@ -85,7 +81,7 @@ public class OrderService {
             ));
         }
 
-        if(total <= 0){
+        if (total <= 0) {
             throw new RuntimeException("Total price cannot be zero");
         }
 
@@ -103,14 +99,17 @@ public class OrderService {
 
         return buildBill(orders, orderItems, payment);
     }
-    /// building bill service layer
-    private BillResponse buildBill(Orders orders,List<OrderItem> items,Payment payment){
-        List<BillResponse.Item> billItems=items.stream()
-                .map(i->BillResponse.Item.builder()
+
+
+    private BillResponse buildBill(Orders orders, List<OrderItem> items, Payment payment) {
+
+        List<BillResponse.Item> billItems = items.stream()
+                .map(i -> BillResponse.Item.builder()
                         .name(i.getFoodItem().getName())
                         .quantity(i.getQuantity())
                         .totalPrice(i.getPrice())
-                        .build()).toList();
+                        .build())
+                .toList();
 
         return BillResponse.builder()
                 .orderId(orders.getId())
@@ -120,77 +119,90 @@ public class OrderService {
                 .paymentStatus(payment.getStatus().name())
                 .utr(payment.getUtr())
                 .build();
-
-
     }
 
-    /// APIs for Admin
-    /// get all orders
-    public List<Orders> getAllOrders(){
-        return orderRepository.findAll();
-    }
-    /// update order status
-    public Orders updateStatus(Long orderId, OrderStatus status){
 
-        if(orderId == null){
+    public Page<Orders> getOrders(int page, int size) {
+
+        if (page < 0) page = 0;
+        if (size <= 0) size = 10;
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending()
+        );
+
+        return orderRepository.findAll(pageable);
+    }
+
+    public Orders getById(Long id) {
+        if (id == null) {
             throw new RuntimeException("Order ID is required");
         }
-        if(status == null){
-            throw new RuntimeException("Order status is required");
-        }
-        Orders orders = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        if(!isValidTransition(orders.getStatus(),status)){
-            throw new RuntimeException("Invalid status tranisition");
-        }
-        orders.setStatus(status);
 
-        return orderRepository.save(orders);
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
     }
 
-    ///  get orders by status
-    public List<Orders> getByStatus(OrderStatus status){
 
-        if(status == null){
+    public Orders updateStatus(Long orderId, OrderStatus status) {
+
+        if (orderId == null) {
+            throw new RuntimeException("Order ID is required");
+        }
+
+        if (status == null) {
+            throw new RuntimeException("Order status is required");
+        }
+
+        Orders orders = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!isValidTransition(orders.getStatus(), status)) {
+            throw new RuntimeException("Invalid status transition");
+        }
+
+        orders.setStatus(status);
+        Orders updatedOrder= orderRepository.save(orders);
+        orderProducer.sendStatusUpdate(
+                updatedOrder.getId(),
+                updatedOrder.getStatus().name()
+        );
+        System.out.println("Order Updated: " + updatedOrder.getId() + " -> " + updatedOrder.getStatus());
+        return updatedOrder;
+    }
+
+
+    public List<Orders> getByStatus(OrderStatus status) {
+
+        if (status == null) {
             throw new RuntimeException("Status is required");
         }
 
         return orderRepository.findByStatus(status);
     }
 
-    /// daily sales track
-    public double getTodaySales(){
+
+    public double getTodaySales() {
+
         LocalDateTime start = LocalDate.now().atStartOfDay();
-        LocalDateTime end = LocalDate.now().atTime(23,59,59);
-        List<Orders> orders = orderRepository.findByCreatedAtBetween(start, end);
-        if(orders == null || orders.isEmpty()){
-            return 0;
-        }
-        return orders.stream()
+        LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
+
+        return orderRepository.findByCreatedAtBetween(start, end)
+                .stream()
                 .mapToDouble(Orders::getTotalPrice)
                 .sum();
     }
 
-    /// order flow validation
-    private boolean isValidTransition(OrderStatus current,OrderStatus next){
-        return switch (current){
-            case PENDING -> next==OrderStatus.CONFIRMED;
-            case CONFIRMED -> next==OrderStatus.PREPARING;
-            case PREPARING -> next==OrderStatus.READY;
-            case READY -> next==OrderStatus.COMPLETED;
+
+    private boolean isValidTransition(OrderStatus current, OrderStatus next) {
+        return switch (current) {
+            case PENDING -> next == OrderStatus.CONFIRMED;
+            case CONFIRMED -> next == OrderStatus.PREPARING;
+            case PREPARING -> next == OrderStatus.READY;
+            case READY -> next == OrderStatus.COMPLETED;
             default -> false;
         };
-    }
-
-    //pagination
-    public Page<Orders> getOrders(int page,int size){
-        return orderRepository.findAll(PageRequest.of(page,size));
-    }
-    public Orders getById(Long id){
-        if(id==null){
-            throw new RuntimeException("Order ID is required");
-        }
-        return orderRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException("Order not found"));
     }
 }

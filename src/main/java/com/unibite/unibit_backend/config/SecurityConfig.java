@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity   // ✅ IMPORTANT
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -23,44 +25,62 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
                 .authorizeHttpRequests(auth -> auth
 
-                        // PUBLIC APIs
+                        /// PUBLIC
                         .requestMatchers("/auth/**").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/menu/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/foods/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/categories/**").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/foods/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/foods/**").permitAll()   // ✅ FIXED
+//                        .requestMatchers(HttpMethod.GET, "/category/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/category", "/category/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
 
-                        // USER APIs
+                        /// USER
                         .requestMatchers(HttpMethod.POST, "/orders/place").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/orders/**").authenticated()
 
-                        // ADMIN APIs
-                        .requestMatchers(HttpMethod.POST, "/menu/**").hasRole("ADMIN")
+                        /// ADMIN (FIXED PATH)
                         .requestMatchers(HttpMethod.POST, "/foods/**").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/category/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/foods/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/foods/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/categories/**").hasRole("ADMIN")
 
-                        .requestMatchers("/orders/all").hasRole("ADMIN")
-                        .requestMatchers("/orders/status/**").hasRole("ADMIN")
-                        .requestMatchers("/orders/sales/today").hasRole("ADMIN")
-                        .requestMatchers("/orders/*/bill").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/category/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/category/**").hasRole("ADMIN")
 
-                        // ANY OTHER REQUEST
+                        .requestMatchers(HttpMethod.PUT, "/orders/**").hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
+
+                /// ERROR HANDLING
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((req, res, ex1) -> {
+                            res.setStatus(401);
+                            res.setContentType("application/json");
+                            res.getWriter().write("{\"message\":\"Unauthorized\"}");
+                        })
+                        .accessDeniedHandler((req, res, ex2) -> {
+                            res.setStatus(403);
+                            res.setContentType("application/json");
+                            res.getWriter().write("{\"message\":\"Access Denied\"}");
+                        })
+                )
+
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }

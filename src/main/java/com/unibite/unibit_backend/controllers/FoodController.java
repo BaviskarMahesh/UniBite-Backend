@@ -12,51 +12,57 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/foods")
 @RequiredArgsConstructor
 public class FoodController {
+
     private final FoodItemService service;
     private final FoodItemRepository foodItemRepository;
 
-    /// food items
+    /// CREATE
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public FoodItem create(@RequestBody @Valid FoodRequest request){
         return service.create(request);
     }
-    /// getting all fooditems
+
+    /// GET ALL (PUBLIC)
     @GetMapping
     public List<FoodItem> getAll(){
         return service.getAll();
     }
 
-    /// update fooditems
+    /// UPDATE
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public FoodItem update(
-            @PathVariable @Valid Long id,
-            @RequestBody @Valid FoodUpdateRequest request
-            ){
-        return service.update(id,request);
+    public FoodItem update(@PathVariable Long id,
+                           @RequestBody @Valid FoodUpdateRequest request){
+        return service.update(id, request);
     }
 
-    /// delete fooditems
+    /// DELETE
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id){
         service.delete(id);
     }
 
-    /// toggle switch
+    /// TOGGLE
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/status")
     public FoodItem toggle(@PathVariable Long id){
         return service.toggleAvailability(id);
     }
 
-    /// search functionality
+    /// SEARCH
     @GetMapping("/search")
     public List<FoodItem> search(@RequestParam String name){
         return foodItemRepository.findByNameContainingIgnoreCase(name);
     }
+
+    /// CATEGORY
     @GetMapping("/category/{id}")
     public List<FoodItem> byCategory(@PathVariable Long id){
         return foodItemRepository.findByFoodCategory_Id(id);

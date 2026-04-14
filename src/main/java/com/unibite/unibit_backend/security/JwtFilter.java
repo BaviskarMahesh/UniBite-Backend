@@ -7,21 +7,20 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final Jwtutil jwtutil;
-    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
@@ -33,18 +32,26 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        if (path.startsWith("/auth") ||
-                (path.startsWith("/menu") && HttpMethod.GET.matches(method)) ||
-                (path.startsWith("/foods") && HttpMethod.GET.matches(method)) ||
-                (path.startsWith("/categories") && HttpMethod.GET.matches(method)) ||
-                (path.startsWith("/foods") && HttpMethod.PATCH.matches(method))) {
+        // ✅ DEBUG (optional)
+        System.out.println("PATH: " + path + " METHOD: " + method);
 
+        /// ✅ PUBLIC ROUTES BYPASS
+        if (
+                path.startsWith("/auth") ||
+
+                        (method.equals("GET") && (
+                                path.equals("/menu") || path.startsWith("/menu/") ||
+                                        path.equals("/foods") || path.startsWith("/foods/") ||
+                                        path.equals("/category") || path.startsWith("/category/")
+                        ))
+        ) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String authHeader = request.getHeader("Authorization");
 
+        /// ❌ NO TOKEN
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -55,30 +62,31 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String email = jwtutil.extractEmail(token);
 
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (email != null &&
+                    jwtutil.isTokenValid(token, email) &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                String role = jwtutil.extractRole(token);
 
-                if (jwtutil.isTokenValid(token, email)) {
+                SimpleGrantedAuthority authority =
+                        new SimpleGrantedAuthority(role); // ROLE_ADMIN / ROLE_CUSTOMER
 
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                email,
+                                null,
+                                List.of(authority)
+                        );
 
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
 
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
 
         } catch (Exception e) {
-            filterChain.doFilter(request, response);
-            return;
+            System.out.println("JWT Error: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);

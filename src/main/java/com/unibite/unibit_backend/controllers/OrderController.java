@@ -5,15 +5,13 @@ import com.unibite.unibit_backend.entity.Orders;
 import com.unibite.unibit_backend.enums.OrderStatus;
 import com.unibite.unibit_backend.service.BillService;
 import com.unibite.unibit_backend.service.OrderService;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -22,48 +20,52 @@ public class OrderController {
     private final OrderService orderService;
     private final BillService billService;
 
-    // PLACE ORDER (USER)
+
     @PostMapping("/place")
-    public BillResponse place(){
+    public ResponseEntity<BillResponse> place() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return orderService.placeOrder(email);
+        return ResponseEntity.ok(orderService.placeOrder(email));
     }
 
-    // ADMIN: VIEW ALL ORDERS
-    @GetMapping("/all")
-    public List<Orders> getAllOrders(){
-        return orderService.getAllOrders();
+
+    @GetMapping
+    public ResponseEntity<Page<Orders>> getOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(orderService.getOrders(page, size));
     }
 
-    // ADMIN: UPDATE STATUS
+
     @PutMapping("/{orderId}/status")
-    public Orders updateStatus(@PathVariable Long orderId,
-                               @RequestParam OrderStatus status){
-        return orderService.updateStatus(orderId, status);
+    public ResponseEntity<Orders> updateStatus(
+            @PathVariable Long orderId,
+            @RequestParam OrderStatus status
+    ) {
+        return ResponseEntity.ok(orderService.updateStatus(orderId, status));
     }
 
-    // ADMIN: FILTER BY STATUS
+
     @GetMapping("/status")
-    public List<Orders> getByStatus(@RequestParam OrderStatus status){
-        return orderService.getByStatus(status);
+    public ResponseEntity<?> getByStatus(@RequestParam OrderStatus status) {
+        return ResponseEntity.ok(orderService.getByStatus(status));
     }
 
-    // ADMIN: DAILY SALES
+
     @GetMapping("/sales/today")
-    public double getTodaySales(){
-        return orderService.getTodaySales();
+    public ResponseEntity<Double> getTodaySales() {
+        return ResponseEntity.ok(orderService.getTodaySales());
     }
 
-    /// downloading the bill end point
-    /// JSON BILL (VIEW)
+
     @GetMapping("/{id}/bill")
-    public BillResponse getBill(@PathVariable Long id){
-        return billService.getBill(id);
+    public ResponseEntity<BillResponse> getBill(@PathVariable Long id) {
+        return ResponseEntity.ok(billService.getBill(id));
     }
 
-    /// PDF DOWNLOAD
+
     @GetMapping("/{id}/bill/pdf")
-    public ResponseEntity<byte[]> downloadBill(@PathVariable Long id){
+    public ResponseEntity<byte[]> downloadBill(@PathVariable Long id) {
         Orders orders = orderService.getById(id);
         byte[] pdf = billService.generateBill(orders);
 
@@ -71,10 +73,5 @@ public class OrderController {
                 .header("Content-Disposition", "attachment; filename=bill.pdf")
                 .header("Content-Type", "application/pdf")
                 .body(pdf);
-    }
-
-    @GetMapping
-    public Page<Orders> getOrders(@RequestParam int page, @RequestParam int size){
-        return orderService.getOrders(page,size);
     }
 }

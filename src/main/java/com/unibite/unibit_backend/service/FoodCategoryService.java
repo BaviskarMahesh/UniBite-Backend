@@ -21,4 +21,10 @@ public class FoodCategoryService {
     public List<FoodCategory> getAll(){
         return repository.findAll();
     }
+    public void delete(Long id){
+        if(!repository.existsById(id)){
+            throw new RuntimeException("Category not found");
+        }
+        repository.deleteById(id);
+    }
 }
