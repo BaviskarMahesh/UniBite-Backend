@@ -50,7 +50,7 @@ public class FoodItemService {
         return foodItemRepository.findAll();
     }
 
-    // ✅ UPDATE FOOD
+    //  UPDATE FOOD
     public FoodItem update(Long id, FoodUpdateRequest request){
 
         FoodItem foodItem = foodItemRepository.findById(id)
