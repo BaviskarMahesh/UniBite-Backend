@@ -32,12 +32,14 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         String method = request.getMethod();
 
-        // ✅ DEBUG (optional)
+        //  DEBUG (optional)
         System.out.println("PATH: " + path + " METHOD: " + method);
 
-        /// ✅ PUBLIC ROUTES BYPASS
+        /// PUBLIC ROUTES BYPASS
         if (
-                path.startsWith("/auth") ||
+                path.equals("/auth/login") ||
+                        path.equals("/auth/register") ||
+                        path.equals("/auth/refresh") ||
 
                         (method.equals("GET") && (
                                 path.equals("/menu") || path.startsWith("/menu/") ||
@@ -51,7 +53,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        /// ❌ NO TOKEN
+        ///  NO TOKEN
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
