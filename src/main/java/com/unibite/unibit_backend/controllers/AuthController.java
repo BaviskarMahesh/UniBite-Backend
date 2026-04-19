@@ -1,4 +1,5 @@
- package com.unibite.unibit_backend.controllers;
+package com.unibite.unibit_backend.controllers;
+
 import com.unibite.unibit_backend.dto.*;
 import com.unibite.unibit_backend.entity.User;
 import com.unibite.unibit_backend.repository.UserRepository;
@@ -7,43 +8,48 @@ import com.unibite.unibit_backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.web.bind.annotation.*;
- @RestController
- @RequestMapping("/auth")
- @RequiredArgsConstructor
- public class AuthController {
 
-     private final AuthService authService;
-     private final UserRepository userRepository;
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
 
-     @PostMapping("/register")
-     public AuthResponse register(@RequestBody @Valid RegisterRequest request) {
-         return authService.register(request);
-     }
+    private final AuthService authService;
+    private final UserRepository userRepository;
 
-     @PostMapping("/login")
-     public AuthResponse login(@RequestBody @Valid LoginRequest request) {
-         return authService.login(request);
-     }
+    @PostMapping("/register")
+    public AuthResponse register(@RequestBody @Valid RegisterRequest request) {
+        return authService.register(request);
+    }
 
-     @PostMapping("/refresh")
-     public AuthResponse refresh(@RequestBody RefreshRequest request){
-         return authService.refreshToken(request);
-     }
+    @PostMapping("/login")
+    public AuthResponse login(@RequestBody @Valid LoginRequest request) {
+        return authService.login(request);
+    }
 
-     @GetMapping("/me")
-     public UserProfileResponse getCurrentUser(java.security.Principal principal) {
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@RequestBody RefreshRequest request){
+        return authService.refreshToken(request);
+    }
 
-         String email = principal.getName();
+    @GetMapping("/me")
+    public UserProfileResponse getCurrentUser(java.security.Principal principal) {
 
-         User user = userRepository.findByEmail(email)
-                 .orElseThrow(() -> new RuntimeException("User not found"));
+        /// ✅ SAFE CHECK
+        if (principal == null || principal.getName() == null) {
+            throw new RuntimeException("Unauthorized - No user found");
+        }
 
-         return UserProfileResponse.builder()
-                 .name(user.getName())
-                 .email(user.getEmail())
-                 .phone(user.getPhone())
-                 .build();
-     }
- }
+        String email = principal.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return UserProfileResponse.builder()
+                .name(user.getName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .build();
+    }
+}

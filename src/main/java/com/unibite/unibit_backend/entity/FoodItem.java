@@ -1,6 +1,7 @@
 package com.unibite.unibit_backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,7 +18,7 @@ public class FoodItem extends BaseEntity{
     private double price;
     private boolean available;
     @ManyToOne
-    @JsonBackReference
     @JoinColumn(name="category_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private FoodCategory foodCategory;
 }

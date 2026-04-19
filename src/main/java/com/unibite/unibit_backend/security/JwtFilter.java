@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,39 +22,30 @@ public class JwtFilter extends OncePerRequestFilter {
     private final Jwtutil jwtutil;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        return path.equals("/auth/login") ||
+                path.equals("/auth/register") ||
+                path.equals("/auth/refresh") ||
+                path.startsWith("/foods") ||
+                path.startsWith("/category") ||
+                path.startsWith("/menu");
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String path = request.getServletPath();
-        String method = request.getMethod();
-
-        //  DEBUG (optional)
-        System.out.println("PATH: " + path + " METHOD: " + method);
-
-        /// PUBLIC ROUTES BYPASS
-        if (
-                path.equals("/auth/login") ||
-                        path.equals("/auth/register") ||
-                        path.equals("/auth/refresh") ||
-
-                        (method.equals("GET") && (
-                                path.equals("/menu") || path.startsWith("/menu/") ||
-                                        path.equals("/foods") || path.startsWith("/foods/") ||
-                                        path.equals("/category") || path.startsWith("/category/")
-                        ))
-        ) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String authHeader = request.getHeader("Authorization");
 
-        ///  NO TOKEN
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            response.setStatus(401);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Unauthorized\"}");
             return;
         }
 
@@ -64,20 +54,17 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String email = jwtutil.extractEmail(token);
 
-            if (email != null &&
-                    jwtutil.isTokenValid(token, email) &&
-                    SecurityContextHolder.getContext().getAuthentication() == null) {
+            System.out.println("🔐 JWT EMAIL: " + email);
+
+            if (email != null && jwtutil.isTokenValid(token, email)) {
 
                 String role = jwtutil.extractRole(token);
-
-                SimpleGrantedAuthority authority =
-                        new SimpleGrantedAuthority(role); // ROLE_ADMIN / ROLE_CUSTOMER
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 email,
                                 null,
-                                List.of(authority)
+                                List.of(new SimpleGrantedAuthority(role))
                         );
 
                 authToken.setDetails(
@@ -85,10 +72,17 @@ public class JwtFilter extends OncePerRequestFilter {
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                System.out.println(" AUTH SET FOR: " + email);
             }
 
         } catch (Exception e) {
-            System.out.println("JWT Error: " + e.getMessage());
+            System.out.println("JWT ERROR: " + e.getMessage());
+
+            response.setStatus(401);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Invalid Token\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

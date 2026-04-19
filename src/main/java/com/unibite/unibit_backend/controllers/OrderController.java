@@ -20,13 +20,20 @@ public class OrderController {
     private final OrderService orderService;
     private final BillService billService;
 
-
     @PostMapping("/place")
     public ResponseEntity<BillResponse> place() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        /// ✅ SAFE AUTH CHECK
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        String email = auth.getName();
+
         return ResponseEntity.ok(orderService.placeOrder(email));
     }
-
 
     @GetMapping
     public ResponseEntity<Page<Orders>> getOrders(
@@ -36,7 +43,6 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrders(page, size));
     }
 
-
     @PutMapping("/{orderId}/status")
     public ResponseEntity<Orders> updateStatus(
             @PathVariable Long orderId,
@@ -45,24 +51,20 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateStatus(orderId, status));
     }
 
-
     @GetMapping("/status")
     public ResponseEntity<?> getByStatus(@RequestParam OrderStatus status) {
         return ResponseEntity.ok(orderService.getByStatus(status));
     }
-
 
     @GetMapping("/sales/today")
     public ResponseEntity<Double> getTodaySales() {
         return ResponseEntity.ok(orderService.getTodaySales());
     }
 
-
     @GetMapping("/{id}/bill")
     public ResponseEntity<BillResponse> getBill(@PathVariable Long id) {
         return ResponseEntity.ok(billService.getBill(id));
     }
-
 
     @GetMapping("/{id}/bill/pdf")
     public ResponseEntity<byte[]> downloadBill(@PathVariable Long id) {
